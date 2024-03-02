@@ -11,25 +11,70 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * ORM component.
+ * Interfaces implemented:
+ *  {@link IDAO} for data operations.
+ *  {@link ConnectionInterface} for database server connection management.
+ *  {@link Menu} for user related interactions.
+ * All implemented methods first check if the connection was successful checking a boolean variable so the user can't execute anything without calling the connection method first
+ *
+ * @author Isaac Lolade Kehinde Adekeye
+ */
 public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
     // Terminal outputs and colors
+    /**
+     * BLACK_FONT -> Static and final {@link String} variable that stores ASCII code for black font color.
+     */
     static final String BLACK_FONT = "\u001B[30m";
+    /**
+     * GREEN_FONT -> Static and final {@link String} variable that stores ASCII code for green font color.
+     */
     static final String GREEN_FONT = "\u001B[32m";
+    /**
+     * WHITE_BG -> Static and final {@link String} variable that stores ASCII code for white background color.
+     */
     static final String WHITE_BG = "\u001B[47m";
+    /**
+     * RESET -> Static and final {@link String} variable that stores ASCII code to reset terminal colors.
+     */
     static final String RESET = "\u001B[0m";
+    /**
+     * USER_INPUT -> Static and final {@link String} variable that stores a simple prompt for the user when he has to introduce any data.
+     */
     static final String USER_INPUT = String.format("%s%s>%s ", BLACK_FONT, WHITE_BG, RESET);
 
+    /**
+     * ipPattern -> {@link Pattern} variable that stores the IPv4 regular expression. Also allows the localhost IP.
+     */
     private final Pattern ipPattern = Pattern.compile("(localhost)|(\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b)"); // Regular expression to identify if the user either localhost or ip address the right way
 
-    private final InputStreamReader isr = new InputStreamReader(System.in); // Input reader for what the user introduces at the console
-
+    /**
+     * isr -> {@link InputStreamReader} variable that will allow the user to insert data through terminal.
+     *
+     */
+    private final InputStreamReader isr = new InputStreamReader(System.in);
+    /**
+     * sessionFactory -> {@link SessionFactory} is the one that tells the system where all the Hibernate mapping files are located
+     */
     private SessionFactory sessionFactory;
 
-    private boolean connectionFlag = false; // to determine if i've established connection with the database
+    /**
+     * connectionFlag -> Boolean variable that indicates whether the connection with the database has been established or not. Set to false by default.
+     */
 
+    private boolean connectionFlag = false;
+
+    /**
+     * connectionFlag -> Boolean variable for program execution. Set to true by default.
+     */
     private boolean executionFlag = true;
 
+    /**
+     * Method to retrieve a list of the employees
+     * @return List of employees if it  exists on the DB otherwise it returns null
+     */
 
     @Override
     public List<Employee> findAllEmployees() {
@@ -37,8 +82,8 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         } else {
 
-            try (Session session = sessionFactory.openSession()) {
-                return session.createQuery("FROM Employee ", Employee.class).setReadOnly(true).getResultList();
+            try (Session session = sessionFactory.openSession()) { // Open a connection with the database
+                return session.createQuery("FROM Employee ", Employee.class).setReadOnly(true).getResultList(); // return the list of employees retrieved
             }catch (HibernateException e){
                 System.out.println("ERROR: HibernateException error reported" + e.getMessage());
             }catch (Exception e){
@@ -48,6 +93,11 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method to find an Employee by is ID
+     * @param id Identification of a specific employee
+     * @return Returns an Employee
+     */
     @Override
     public Employee findEmployeeById(Object id) {
         if (!this.connectionFlag) {
@@ -55,7 +105,7 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         } else {
 
             try(Session s = sessionFactory.openSession()) {
-                return s.find(Employee.class,id); // se devuelve el empleado referenciado por el id
+                return s.find(Employee.class,id); // it returns the employee refered by the id
 
             }catch (HibernateException e){
                 System.out.println("ERROR: HibernateException error reported" + e.getMessage());
@@ -66,23 +116,27 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method to add an Employee to the database
+     * @param employee Object that we'll add to the parameter that was created early, from this we'll be extract the Name, ID and the Role
+     */
     @Override
     public void addEmployee(Employee employee) {
         if (!this.connectionFlag) {
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         } else {
             try (Session session = sessionFactory.openSession()) {
-                Transaction t = session.beginTransaction(); // iniacimos la transaccion
+                Transaction t = session.beginTransaction(); // Initialized the transaction
                 try {
-                    Employee trrabajador = new Employee();     // creamos el estudiante
-                    trrabajador.setName(employee.getName());
-                    trrabajador.setDepno(employee.getDepno());
-                    trrabajador.setPosition(employee.getPosition());
-                    trrabajador.setEmpno(employee.getEmpno());
-                    session.merge(trrabajador);     // hacemos empledao persistente
-                    t.commit(); // subimos los cambios
+                    Employee trrabajador = new Employee();     // We create an employee without no parameters
+                    trrabajador.setName(employee.getName());  // Set the name
+                    trrabajador.setDepno(employee.getDepno()); // Set the department where his working in
+                    trrabajador.setPosition(employee.getPosition()); // Set his role
+                    trrabajador.setEmpno(employee.getEmpno()); // Set his ID
+                    session.merge(trrabajador);     // We make employee persistent
+                    t.commit(); // We commit the employee we just created
                 } catch (HibernateException e) {
-                    System.out.println("ERROR: HiibernateException  error reported " + e.getMessage());
+                    System.out.println("ERROR: HibernateException  error reported " + e.getMessage());
                     t.rollback();
                 }
             }
@@ -91,6 +145,11 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
     }
 
+    /**
+     * Method that get a specific Employee updated
+     * @param id Identification of a specific employee
+     * @return Returns the Employee with info updated
+     */
     @Override
     public Employee updateEmployee(Object id) {
         if (!this.connectionFlag) {
@@ -101,19 +160,18 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
                 System.out.println("SET the name from the employee, please");
                 String name = br.readLine();
-                System.out.println("SET the position from the employee, please");
-                String position = br.readLine();
+                System.out.println("SET the role from the employee, please");
+                String role = br.readLine();
                 System.out.println("SET the Department number from the employee, please");
                 Integer depno = Integer.parseInt(br.readLine());
 
                 Transaction  t = s.beginTransaction();
                 try{
-                    s.createQuery("UPDATE Employee SET name =  :name, depno = :department, position = :play WHERE empno = : id ")
-                            .setParameter("id",id)
-                            .setParameter("name",name)
-                            .setParameter("department",depno)
-                            .setParameter("play", position)
-                            .executeUpdate();
+                    Employee employee = s.get(Employee.class,id); // We retrieve the specific employee referenced by the id
+                    employee.setName(name); // Set the name
+                    employee.setDepno(depno); // Set the department where he belongs to
+                    employee.setPosition(role); // Set the role
+                    s.merge(employee);
                     t.commit();
 
                     return s.find(Employee.class,id);
@@ -134,6 +192,11 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method that deletes a specific Employee
+     * @param id  Identification of a specific employee
+     * @return Returns the object of the Employee deleted
+     */
     @Override
     public Employee deleteEmployee(Object id) {
         if (!this.connectionFlag){
@@ -143,12 +206,10 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
                 Employee employee = s.get(Employee.class,id);
                 Transaction  t = s.beginTransaction();
                 try{
-                    s.createQuery("DELETE FROM Employee WHERE empno = : id ")
-                            .setParameter("id",id)
-                            .executeUpdate();
+                    s.remove(employee); // This will erase/delete the employee
                     t.commit();
 
-                    return employee; // to check if it still exists
+                    return employee; // return the employee just deleted
                 }catch (HibernateException e){
                     System.out.println("ERROR: HibernateException error reported" + e.getMessage());
                 }catch (Exception e){
@@ -159,6 +220,7 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+
     @Override
     public List<Department> findAllDepartments() {
         if (!this.connectionFlag) {
@@ -166,7 +228,7 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         } else {
 
             try (Session session = sessionFactory.openSession()) {
-                return session.createQuery("FROM Department ", Department.class).setReadOnly(true).getResultList();
+                return session.createQuery("FROM Department ", Department.class).setReadOnly(true).getResultList(); // return the list of departments retrieved
             }catch (HibernateException e){
                 System.out.println("ERROR: HibernateException error reported" + e.getMessage());
             }catch (Exception e){
@@ -176,6 +238,11 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method to find a Department by is ID
+     * @param id Identification of a specific department
+     * @return Returns a Department
+     */
     @Override
     public Department findDepartmentById(Object id) {
         if (!this.connectionFlag) {
@@ -183,7 +250,7 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         } else {
 
             try(Session s = sessionFactory.openSession()) {
-                return s.find(Department.class,id); // se devuelve el empleado referenciado por el id
+                return s.find(Department.class,id); // returns the specified department referenced by his id
 
             }catch (HibernateException e){
                 System.out.println("ERROR: HibernateException error reported" + e.getMessage());
@@ -194,19 +261,23 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method to add an Employee to the database
+     * @param department Object that we'll add to the parameter that was created early, from this we'll be extract the Name, ID and the Location
+     */
     @Override
     public void addDepartment(Department department) {
         if (!this.connectionFlag){
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         }else {
             try (Session session = sessionFactory.openSession()) {
-                Transaction t = session.beginTransaction(); // iniacimos la transaccion
+                Transaction t = session.beginTransaction(); // Begin the transaction
                 try {
-                    Department departmento = new Department();     // creamos el estudiante
+                    Department departmento = new Department();     // Create object Department
 
-                    departmento.setNombre(department.getName());
-                    departmento.setUbicacion(department.getLocation());
-                    departmento.setDepno(departmento.getDepno());
+                    departmento.setNombre(department.getName());  // Set Department Name
+                    departmento.setUbicacion(department.getLocation()); // Set Department Location
+                    departmento.setDepno(departmento.getDepno()); // Set Department ID
 
                     session.merge(departmento);     // hacemos empledao persistente
                     t.commit();                 // subimos los cambios
@@ -220,13 +291,18 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
     }
 
+    /**
+     * Method that get a specific Department updated
+     * @param id Identification of a specific department
+     * @return Returns the Department with info updated
+     */
     @Override
-    public Department updateDepartment(Object id) {
+    public Department updateDepartment(Object id) { // Exact the same process with updateEmployee
         if (!this.connectionFlag) {
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         } else {
             BufferedReader br = new BufferedReader(isr);
-
+            Department department = new Department();
             try(Session s = sessionFactory.openSession()) {
 
                 System.out.println("SET the name from the department, please");
@@ -238,11 +314,10 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
                 Transaction  t = s.beginTransaction();
                 try{
-                    s.createQuery("UPDATE Department SET  nombre =  :name, ubicacion = :location WHERE depno = : id ")
-                            .setParameter("id",depno)
-                            .setParameter("name",name)
-                            .setParameter("location", location)
-                            .executeUpdate();
+                    department.setDepno(depno);
+                    department.setNombre(name);
+                    department.setUbicacion(location);
+                    s.merge(department);
                     t.commit();
 
                     return s.find(Department.class,id);
@@ -263,10 +338,14 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
-
+    /**
+     * Method that deletes a specific Department
+     * @param id  Identification of a specific department
+     * @return Returns the object of the Department deleted
+     */
 
     @Override
-    public Department deleteDepartment(Object id) {
+    public Department deleteDepartment(Object id) { // Exact the same process with deleteEmployee
         if (!this.connectionFlag){
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         }else{
@@ -275,12 +354,10 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
                 Transaction  t = s.beginTransaction();
                 try{
-                    s.createQuery("DELETE FROM Department WHERE depno = : id ")
-                            .setParameter("id",id)
-                            .executeUpdate();
+                    s.remove(department);
                     t.commit();
 
-                    return department; // to check if it still exists
+                    return department; // return the Department deleted
                 }catch (HibernateException e){
                     System.out.println("ERROR: HibernateException error reported" + e.getMessage());
                 }catch (Exception e){
@@ -290,9 +367,14 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         }
         return null;
     }
+    /**
+     * Method to get employees from the same Department
+     * @param idDept Identification for a specific Department
+     * @return A list of employees from specific Department
+     */
 
     @Override
-    public List<Employee> findEmployeesByDept(Object id) {
+    public List<Employee> findEmployeesByDept(Object idDept) {
         if (!this.connectionFlag) {
             System.out.println("ERROR, there's no connection to the Database. Please try using method connectDB() before trying any other thing");
         } else {
@@ -301,13 +383,13 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
 
                 Transaction t = s.beginTransaction();
                 try {
-                    Integer numero = Integer.parseInt(id.toString());
-                  List<Employee> employeeList=  s.createQuery(" FROM Employee WHERE departmentByDepno = :id ", Employee.class)
-                            .setParameter("id", numero)
-                            .setReadOnly(true)
-                            .getResultList();
+                    Integer numero = Integer.parseInt(idDept.toString());
+                    List<Employee> employeeList=  s.createQuery(" FROM Employee WHERE depno = :id ", Employee.class)
+                                                                                        .setParameter("id", numero)
+                                                                                        .setReadOnly(true)
+                                                                                        .getResultList();
                     t.commit();
-                    return employeeList;
+                    return employeeList; // return the list
                 } catch (NumberFormatException e) {
                     System.out.println("ERROR: NumberException error reported "+ e.getMessage());
                 }
@@ -317,6 +399,10 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return null;
     }
 
+    /**
+     * Method to get access to the database by introducing the values needed to make that possible
+     * @return True if the connection was made in case it wasn't you won't get access to the database
+     */
     @Override
     public boolean connectDB() {
         Configuration cfg = new Configuration();
@@ -344,23 +430,22 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
                 connectionBuilder.append(serverPort).append("/");
                 System.out.println("Insert the Database NAME (case sensitive!):"); // DB Name
                 System.out.print(USER_INPUT);
-                String dbName = reader.readLine();
+                String dbName = reader.readLine();// DB Username
                 connectionBuilder.append(dbName);
-                cfg.setProperty("hibernate.connection.url", connectionBuilder.toString());
-                System.out.println("LOGIN: indicate the username and password"); // DB Server IP
+                cfg.setProperty("hibernate.connection.url", connectionBuilder.toString()); // assign url connection to access database with hibernate file
+                System.out.println("LOGIN: indicate the username and password");
                 System.out.print("username> ");
                 String username = reader.readLine();
-                cfg.setProperty("hibernate.connection.username", username);
+                cfg.setProperty("hibernate.connection.username", username);  // assign postgres username db credential with hibernate file
                 System.out.print("password> ");
                 String passwd = reader.readLine();
-                cfg.setProperty("hibernate.connection.password", passwd);
-                cfg.setProperty("hibernate.connection.driver_class", "org.postgresql.Driver");
-                cfg.setProperty("hibernate.hbm2ddl.auto","update");
-                cfg.setProperty("hibernate.show_sql","true");
+                cfg.setProperty("hibernate.connection.password", passwd); // assign postgres password db credential with hibernate file
+                cfg.setProperty("hibernate.connection.driver_class", "org.postgresql.Driver");  // assign postgres driver l with hibernate file
+                cfg.setProperty("hibernate.hbm2ddl.auto","update"); //update the schema
                 cfg.addAnnotatedClass(cesur.accesodatos.ORM.Department.class);
                 cfg.addAnnotatedClass(cesur.accesodatos.ORM.Employee.class);
 
-                this.sessionFactory = cfg.buildSessionFactory();
+                this.sessionFactory = cfg.buildSessionFactory(); // use the properties and mappings in this configuration
 
                 if (this.sessionFactory != null){
                     this.connectionFlag = true;
@@ -378,6 +463,9 @@ public class ORMDAO implements ConnectionInterface, IDAO, Menu {
         return false;
     }
 
+    /**
+     * Method to close the connection to the database
+     */
     @Override
     public void closeConnection() {
         if (this.connectionFlag) {
