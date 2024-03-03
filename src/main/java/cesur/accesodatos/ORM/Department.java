@@ -8,6 +8,8 @@ import jakarta.persistence.*;
  * Department class represents a department entity in the system.
  * It encapsulates information about a department, such as its unique identifier,
  * name, and location.
+ *
+ * @author Isaac Lolade Kehinde Adekeye
  */
 @Entity
 @Table(name = "departamento", schema = "public", catalog = "Empresa")
